@@ -11,11 +11,13 @@ use lib 't/lib';
 use pgNode;
 use pgSession;
 use Time::HiRes qw(usleep gettimeofday tv_interval);
-use Test::More tests => 5;
+use Test::More tests => 10;
 
 my $node = pgNode->get_new_node('prod');
 
 $node->init;
+$node->append_conf('postgresql.conf', 'wal_level=replica');
+
 $node->start;
 
 ### Beginning of tests ###
@@ -35,6 +37,26 @@ $node->command_checks_all( [
         'basic check'
 );
 
+$node->stop( 'immediate' );
+$node->set_standby_mode;
+$node->start;
+
+# basic check => Returns OK
+$node->command_checks_all( [
+        './check_pgactivity', '--service'  => 'is_master',
+                              '--username' => $ENV{'USER'} || 'postgres',
+                              '--format'   => 'human',
+        ],
+        2,
+        [ qr/^Service  *: POSTGRES_IS_MASTER$/m,
+          qr/^Returns  *: 2 \(CRITICAL\)$/m,
+          qr/^Message  *: Cluster is not master/m,
+        ],
+        [ qr/^$/ ],
+        'basic check not master'
+);
+
+$node->stop( 'immediate' );
 ### End of tests ###
 
 # stop immediate to kill any remaining backends
