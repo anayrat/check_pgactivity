@@ -15,7 +15,7 @@ use Test::More tests => 5;
 
 my $node = pgNode->get_new_node('prod');
 
-$node->init;
+$node->init(data_checksums => 1);
 $node->start;
 
 ### Beginning of tests ###
@@ -26,14 +26,16 @@ $node->command_checks_all( [
                               '--username' => $ENV{'USER'} || 'postgres',
                               '--format'   => 'human',
         ],
-        3,
+        0,
         [ qr/^Service  *: POSTGRES_CHECKSUM_ERRORS$/m,
-          qr/^Message  *: Data checksums are not enabled!$/m,
-          qr/^Returns  *: 3 \(UNKNOWN\)$/m,
+          qr/^Message  *: 4 database\(s\) checked$/m,
+          qr/^Returns  *: 0 \(OK\)$/m,
         ],
         [ qr/^$/ ],
         'basic check'
 );
+
+my $datadir=$node->data_dir();
 
 ### End of tests ###
 
