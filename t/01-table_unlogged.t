@@ -22,7 +22,7 @@ $node->start;
 
 # This service can run without thresholds
 
-# Tests for PostreSQL 16 and before
+# Tests for PostreSQL 9.4 and before
 SKIP: {
     skip "testing incompatibility with PostgreSQL 9.4 and before", 3
         if $node->version >= 9.5;
