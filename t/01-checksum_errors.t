@@ -74,6 +74,7 @@ SKIP: {
 
     # Some debug output
     $node->psql('postgres', "VACUUM corruptme");
+    sleep(2);
 
     # corruption check => Returns CRITICAL
     $node->command_checks_all( [
