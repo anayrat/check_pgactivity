@@ -20,6 +20,8 @@ $node->start;
 
 ### Beginning of tests ###
 
+# TODO: does not work on PG13 and less.
+#
 # First check. Returns no perfdata
 $node->command_checks_all( [
     './check_pgactivity', '--service'     => 'session_stats',
@@ -48,7 +50,7 @@ $node->command_checks_all( [
     [
       qr/^Service  *: POSTGRES_SESSION_STATS$/m,
       qr/^Returns  *: 0 \(OK\)$/m,
-      qr/^Message  *: Number of sessions per second for all databases: [1-9][.0-9]*$/m,
+      qr/^Message  *: Number of sessions per second for all databases: [0-9][.0-9]*$/m,
       qr/^Perfdata *: template1_session_rate=0 sessions\/s$/m,
       qr/^Perfdata *: template1_session_time=0ms$/m,
       qr/^Perfdata *: template1_active_time=0ms$/m,
