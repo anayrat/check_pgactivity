@@ -11,7 +11,7 @@ use lib 't/lib';
 use pgNode;
 use pgSession;
 use Time::HiRes qw(usleep gettimeofday tv_interval);
-use Test::More tests => 15;
+use Test::More tests => 2;
 
 my $node = pgNode->get_new_node('prod');
 
@@ -25,10 +25,12 @@ $node->psql('postgres', 'INSERT INTO corruptme (x) SELECT md5(i::text) FROM gene
 my $file = $node->safe_psql('postgres', 'SELECT pg_relation_filepath(\'corruptme\')');
 print "==> Corrupted file : $file\n";
 
-# Tests for PostreSQL 16 and before
+subtest pg11 => sub {
+# Tests for PostreSQL 11 and before
 SKIP: {
     skip "testing incompatibility with PostgreSQL 11 and before", 3
         if $node->version >= 12;
+    plan tests => 3;
 
     $node->command_checks_all( [
         './check_pgactivity', '--service'  => 'checksum_errors',
@@ -41,9 +43,13 @@ SKIP: {
         'non compatible PostgreSQL version'
     );
 }
+};
 
+subtest pg12 => sub {
 SKIP: {
     skip "incompatible tests with PostgreSQL < 12", 34 if $node->version < 12;
+
+    plan tests => 12;
 
     # basic check => Returns OK
     $node->command_checks_all( [
@@ -93,6 +99,7 @@ SKIP: {
         'basic check'
     );
 }
+};
 
 ### End of tests ###
 
