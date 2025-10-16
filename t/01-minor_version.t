@@ -22,13 +22,14 @@ $node->start;
 
 # Get current version
 #($dummy, $curverstr) = $node->psql('postgres', 'SELECT setting FROM pg_settings WHERE name = \'server_version\'');
-my $version_output = $node->safe_psql('postgres', 'SELECT setting FROM pg_settings WHERE name = \'server_version_num\'');
+my $version_output = $node->safe_psql('postgres', 'SELECT to_char(setting::int, \'fm000000\') FROM pg_settings WHERE name = \'server_version_num\'');
 my ($v1, $v2, $v3) = $version_output =~ /(\d{2})(\d{2})(\d{2})/;
+
 my $current_version;
 if ($v1 >= 10)
-{ $current_version = "$v1.$v3"; }
+{ $current_version = sprintf "%d.%d", $v1, $v3; }
 else
-{ $current_version = "$v1.$v2.$v3"; }
+{ $current_version = sprintf "%d.%d.%d", $v1, $v2, $v3; }
 
 # basic check => Returns OK
 $node->command_checks_all( [
@@ -49,9 +50,9 @@ $node->command_checks_all( [
 
 $v3+=1;
 if ($v1 >= 10)
-{ $current_version = "$v1.$v3"; }
+{ $current_version = sprintf "%d.%d", $v1, $v3; }
 else
-{ $current_version = "$v1.$v2.$v3"; }
+{ $current_version = sprintf "%d.%d.%d", $v1, $v2, $v3; }
 
 # minor version change => Returns WARNING
 $node->command_checks_all( [
