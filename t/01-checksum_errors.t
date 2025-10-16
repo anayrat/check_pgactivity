@@ -11,7 +11,7 @@ use lib 't/lib';
 use pgNode;
 use pgSession;
 use Time::HiRes qw(usleep gettimeofday tv_interval);
-use Test::More tests => 12;
+use Test::More tests => 15;
 
 my $node = pgNode->get_new_node('prod');
 
@@ -25,8 +25,28 @@ $node->psql('postgres', 'INSERT INTO corruptme (x) SELECT md5(i::text) FROM gene
 my $file = $node->safe_psql('postgres', 'SELECT pg_relation_filepath(\'corruptme\')');
 print "==> Corrupted file : $file\n";
 
-# basic check => Returns OK
-$node->command_checks_all( [
+# Tests for PostreSQL 16 and before
+SKIP: {
+    skip "testing incompatibility with PostgreSQL 11 and before", 3
+        if $node->version >= 12;
+
+    $node->command_checks_all( [
+        './check_pgactivity', '--service'  => 'checksum_errors',
+                              '--username' => $ENV{'USER'} || 'postgres',
+                              '--format'   => 'human',
+        ],
+        1,
+        [ qr/^$/ ],
+        [ qr/^Service checksum_errors is not compatible with host/ ],
+        'non compatible PostgreSQL version'
+    );
+}
+
+SKIP: {
+    skip "incompatible tests with PostgreSQL < 12", 34 if $node->version < 12;
+
+    # basic check => Returns OK
+    $node->command_checks_all( [
         './check_pgactivity', '--service'  => 'checksum_errors',
                               '--username' => $ENV{'USER'} || 'postgres',
                               '--format'   => 'human',
@@ -38,25 +58,25 @@ $node->command_checks_all( [
         ],
         [ qr/^$/ ],
         'basic check'
-);
+    );
 
-# Make sure the data is written on disk before Postgres is stopped
-# If this checkpoint is skipped, PG will overwrite the corrupted page after
-# starting WAL replay at startup.
-$node->psql('postgres', 'CHECKPOINT;');
-$node->stop( 'immediate' );
+    # Make sure the data is written on disk before Postgres is stopped
+    # If this checkpoint is skipped, PG will overwrite the corrupted page after
+    # starting WAL replay at startup.
+    $node->psql('postgres', 'CHECKPOINT;');
+    $node->stop( 'immediate' );
 
-# Corrupt silently checksum of first page of table corruptme
-# Postgres is stopped to avoid any caching
-$node->corrupt_page_checksum($file, 0);
+    # Corrupt silently checksum of first page of table corruptme
+    # Postgres is stopped to avoid any caching
+    $node->corrupt_page_checksum($file, 0);
 
-$node->start;
+    $node->start;
 
-# Some debug output
-$node->psql('postgres', "VACUUM corruptme");
+    # Some debug output
+    $node->psql('postgres', "VACUUM corruptme");
 
-# corruption check => Returns CRITICAL
-$node->command_checks_all( [
+    # corruption check => Returns CRITICAL
+    $node->command_checks_all( [
         './check_pgactivity', '--service'  => 'checksum_errors',
                               '--username' => $ENV{'USER'} || 'postgres',
                               '--format'   => 'human',
@@ -70,7 +90,8 @@ $node->command_checks_all( [
         ],
         [ qr/^$/ ],
         'basic check'
-);
+    );
+}
 
 ### End of tests ###
 
