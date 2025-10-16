@@ -92,7 +92,7 @@ $node->command_checks_all( [
         [ qr/^Service  *: POSTGRES_OLDEST_2PC$/m,
           qr/^Message  *: 1 prepared transaction\(s\)$/m,
           qr/^Returns  *: 1 \(WARNING\)$/m,
-          qr/^Perfdata *: postgres max=[0-9]\.[0-9]+s warn=1 crit=7200$/m,
+          qr/^Perfdata *: postgres max=[0-9][.0-9]*s warn=1 crit=7200$/m,
           qr/^Perfdata *: postgres avg=[0-9]s warn=1 crit=7200$/m,
           qr/^Perfdata *: postgres # prep. xact=1$/m,
         ],
