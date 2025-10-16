@@ -11,7 +11,7 @@ use lib 't/lib';
 use pgNode;
 use pgSession;
 use Time::HiRes qw(usleep gettimeofday tv_interval);
-use Test::More tests => 11;
+use Test::More tests => 12;
 
 my $node = pgNode->get_new_node('prod');
 
@@ -54,13 +54,6 @@ $node->start;
 
 # Some debug output
 $node->psql('postgres', "VACUUM corruptme");
-#my $atari_count = $node->safe_psql('postgres', "SELECT count(*) FROM corruptme WHERE x = 'atari'");
-#print "==> Count: $atari_count\n";
-my $chksum_enabled = $node->safe_psql('postgres', "SELECT setting FROM pg_settings WHERE name = 'data_checksums'");
-print "==> Checksums: $chksum_enabled\n";
-my $chksum_failures = $node->safe_psql('postgres', "SELECT checksum_failures FROM pg_stat_database WHERE datname = current_database()");
-print "==> Failures: $chksum_failures\n";
-
 
 # corruption check => Returns CRITICAL
 $node->command_checks_all( [
@@ -72,20 +65,12 @@ $node->command_checks_all( [
         [ qr/^Service  *: POSTGRES_CHECKSUM_ERRORS$/m,
           qr/^Message  *: postgres: 1 error\(s\)$/m,
           qr/^Perfdata *: postgres=1 warn=1 crit=1$/m,
+	  qr/^Perfdata *: template1=0 warn=1 crit=1$/m,
           qr/^Returns  *: 2 \(CRITICAL\)$/m,
         ],
         [ qr/^$/ ],
         'basic check'
 );
-
-#                   'Service        : POSTGRES_CHECKSUM_ERRORS
-# Returns        : 2 (CRITICAL)
-# Message        : postgres: 1 error(s)
-# Perfdata       : <shared objects>=0 warn=1 crit=1
-# Perfdata       : postgres=1 warn=1 crit=1
-# Perfdata       : template1=0 warn=1 crit=1
-# Perfdata       : template0=0 warn=1 crit=1
-
 
 ### End of tests ###
 
